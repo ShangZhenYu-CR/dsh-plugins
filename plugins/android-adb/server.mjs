@@ -21,6 +21,24 @@ function localPath(p) {
   return isAbsolute(p) ? p : resolve(WORKSPACE, p);
 }
 
+async function stageApk(apk, name) {
+  const outDir = '/sdcard/Download/DSH-Go';
+  mkdirSync(outDir, { recursive: true });
+  const base = name || apk.split('/').pop().replace(/\.apk$/i, '');
+  const target = join(outDir, `${base}.apk`);
+  copyFileSync(apk, target);
+  let info = {};
+  try {
+    const a = await exec('aapt', ['dump', 'badging', apk], { timeout: 30000 });
+    info = {
+      package: (a.stdout.match(/package: name='([^']+)'/) || [])[1],
+      versionName: (a.stdout.match(/versionName='([^']+)'/) || [])[1],
+      versionCode: (a.stdout.match(/versionCode='(\d+)'/) || [])[1],
+    };
+  } catch {}
+  return { staged: target, mb: Math.round((statSync(target).size / 1048576) * 10) / 10, ...info };
+}
+
 async function adb(args, { allowFail = false, timeout = 240000 } = {}) {
   try {
     const { stdout, stderr } = await exec(ADB, args, { timeout, maxBuffer: 32 * 1024 * 1024 });
@@ -109,20 +127,7 @@ function register(server) {
     async ({ path, name }) => {
       const apk = localPath(path || 'OrbitEdge/app/build/outputs/apk/release/app-release.apk');
       if (!existsSync(apk)) throw new Error(`找不到 APK：${apk}`);
-      const outDir = '/sdcard/Download/DSH-Go';
-      mkdirSync(outDir, { recursive: true });
-      const target = join(outDir, `${name || apk.split('/').pop().replace(/\.apk$/i, '')}.apk`);
-      copyFileSync(apk, target);
-      let info = {};
-      try {
-        const a = await exec('aapt', ['dump', 'badging', apk], { timeout: 30000 });
-        info = {
-          package: (a.stdout.match(/package: name='([^']+)'/) || [])[1],
-          versionName: (a.stdout.match(/versionName='([^']+)'/) || [])[1],
-          versionCode: (a.stdout.match(/versionCode='(\d+)'/) || [])[1],
-        };
-      } catch {}
-      return text({ staged: target, mb: Math.round((statSync(target).size / 1048576) * 10) / 10, ...info });
+      return text(await stageApk(apk, name));
     },
   );
 
@@ -143,7 +148,18 @@ function register(server) {
       );
       if (!existsSync(apk)) throw new Error(`找不到 APK：${apk}`);
       const size = statSync(apk).size;
-      await ensureDevice();
+      try {
+        await ensureDevice();
+      } catch (e) {
+        const staged = await stageApk(apk);
+        return text({
+          installed: false,
+          reason: '手机没连上（无线调试需要 WiFi）',
+          staged: staged.staged,
+          hint: '已复制到手机下载目录，请在「文件管理 → 下载 → DSH-Go」点一下安装',
+          ...staged,
+        });
+      }
       const args = ['install', '-r'];
       if (downgrade) args.push('-d');
       args.push(apk);
