@@ -1,0 +1,11 @@
+{
+  "name": "dsh-mcp-atlassian",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DeepSeek Harness 的 Atlassian MCP 服务：Confluence + Jira 读写",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.2.0",
+    "zod": "^4.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "dsh-mcp-github",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DeepSeek Harness 的 GitHub MCP 服务：仓库读写 + 私有仓库拉取/上传",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.2.0",
+    "zod": "^4.0.0"
+  }
+}

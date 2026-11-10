@@ -1,0 +1,12 @@
+# Atlassian 读写工具（凭据在 {{DSH_HOME}}/atlassian-mcp/config.json）
+- insert:
+    - id: mcp-atlassian
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: atlassian
+        transport: stdio
+        command: !!js process.execPath
+        args:
+          - {{DSH_HOME}}/atlassian-mcp/server.mjs
+        toolCallTimeoutMs: 120000
+        failOnStartupError: false
