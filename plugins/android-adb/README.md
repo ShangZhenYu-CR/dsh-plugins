@@ -11,9 +11,13 @@
 apt-get install -y android-tools-adb aapt
 ```
 
-## 没有 WiFi 也能用
+## 必须连着 WiFi
 
-无线调试**不需要 Wi-Fi**。手机只用移动数据时，开关照样能打开，「IP 地址和端口」显示的是蜂窝/VPN 接口地址（如 `172.19.0.1:44083`）。配对和连接都用那个地址即可；从 Ubuntu 环境里连本机回环 `127.0.0.1` 往往也行。
+这台小米 15（HyperOS）的「无线调试」要求手机连着 WLAN：WiFi 一关，开关就打不开，已连的设备立刻变 `offline`。
+
+- 装包/抓日志时先连 WiFi（家里、公司、热点都行，不需要能上外网）
+- 没有 WiFi 时用 `stage_apk`：把 APK 复制到 `/sdcard/Download/DSH-Go/`，在文件管理器点一下走系统安装器
+- 或者用电脑 USB：`adb install -r app-release.apk`
 
 ## 一次性配对
 
@@ -30,6 +34,7 @@ apt-get install -y android-tools-adb aapt
 | `adb_devices` | 看当前连上的设备 |
 | `adb_pair` / `adb_connect` | 配对 / 连接无线调试 |
 | `install_apk` | 安装 APK（覆盖安装），装完自动启动；`path` 省略时用 `OrbitEdge/app/build/outputs/apk/release/app-release.apk` |
+| `stage_apk` | 不依赖设备：把 APK 复制到 `/sdcard/Download/DSH-Go/`，供手动安装 |
 | `app_info` | 查手机上已装版本（确认是不是最新那个） |
 | `launch_app` | 启动 / 强制停止 App |
 | `uninstall_app` | 卸载 |

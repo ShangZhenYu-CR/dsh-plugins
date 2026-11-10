@@ -5,7 +5,7 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, statSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
 import { isAbsolute, join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,7 +40,7 @@ async function ensureDevice() {
   if (!online.length) {
     const detail = lines.length ? lines.join('; ') : '没有已连接设备';
     throw new Error(
-      `没有可用的手机连接（${detail}）。需要在手机「开发者选项 → 无线调试」打开，并用 adb_connect / adb_pair 连上。`,
+      `没有可用的手机连接（${detail}）。无线调试需要手机连着 WiFi 才能打开；无法用 adb 时可以先 stage_apk 把包放进下载目录，手动点装。`,
     );
   }
   return online[0];
@@ -93,6 +93,36 @@ function register(server) {
       if (!/connected/i.test(out)) throw new Error('连接失败：' + clip(out, 800) + '（确认无线调试开着，端口是最新显示的那个）');
       const d = await adb(['devices']);
       return text({ connected: `${host}:${port}`, devices: d.out });
+    },
+  );
+
+  server.registerTool(
+    'stage_apk',
+    {
+      title: '把 APK 放到手机下载目录',
+      description: '不需要设备连接：把工作区里的 APK 复制到 /sdcard/Download/DSH-Go/，用户在文件管理器点一下即可安装（无 WiFi 时的兜底）。',
+      inputSchema: z.object({
+        path: z.string().optional().describe('APK 路径，相对 /root/workspace；默认 OrbitEdge 的 release 包'),
+        name: z.string().optional().describe('目标文件名（不含 .apk），默认沿用原文件名'),
+      }),
+    },
+    async ({ path, name }) => {
+      const apk = localPath(path || 'OrbitEdge/app/build/outputs/apk/release/app-release.apk');
+      if (!existsSync(apk)) throw new Error(`找不到 APK：${apk}`);
+      const outDir = '/sdcard/Download/DSH-Go';
+      mkdirSync(outDir, { recursive: true });
+      const target = join(outDir, `${name || apk.split('/').pop().replace(/\.apk$/i, '')}.apk`);
+      copyFileSync(apk, target);
+      let info = {};
+      try {
+        const a = await exec('aapt', ['dump', 'badging', apk], { timeout: 30000 });
+        info = {
+          package: (a.stdout.match(/package: name='([^']+)'/) || [])[1],
+          versionName: (a.stdout.match(/versionName='([^']+)'/) || [])[1],
+          versionCode: (a.stdout.match(/versionCode='(\d+)'/) || [])[1],
+        };
+      } catch {}
+      return text({ staged: target, mb: Math.round((statSync(target).size / 1048576) * 10) / 10, ...info });
     },
   );
 
