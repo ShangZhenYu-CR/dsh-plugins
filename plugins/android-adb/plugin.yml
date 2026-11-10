@@ -1,0 +1,5 @@
+# dsh-plugins 插件清单：一个新插件 = plugins/<名字>/ 下一个文件夹
+id: mcp-android-adb
+serverName: adb
+description: 通过 adb 无线调试把 APK 装到手机上，并可启动、看日志、截图
+timeoutMs: 300000

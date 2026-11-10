@@ -1,0 +1,11 @@
+{
+  "name": "dsh-mcp-android-adb",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DeepSeek Harness 的 Android 调试 MCP 服务：安装 APK、启动、日志、截图",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.2.0",
+    "zod": "^4.0.0"
+  }
+}
