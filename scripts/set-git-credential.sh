@@ -3,8 +3,8 @@
 set -euo pipefail
 
 DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
-TOKEN_FILE="$DSH_HOME/github-mcp/token"
-CRED="$DSH_HOME/github-mcp/git-credentials"
+TOKEN_FILE="$DSH_HOME/mcp-plugins/github-mcp/token"
+CRED="$DSH_HOME/mcp-plugins/github-mcp/git-credentials"
 
 if [ ! -s "$TOKEN_FILE" ]; then
   echo "先写入 token：$TOKEN_FILE"

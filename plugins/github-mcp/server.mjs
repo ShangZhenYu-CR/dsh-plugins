@@ -7,12 +7,14 @@ import { readFileSync, existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { homedir } from 'node:os';
-import { isAbsolute, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 
 const exec = promisify(execFile);
 
-const HOME = process.env.HOME || homedir();
-const TOKEN_FILE = process.env.GITHUB_TOKEN_FILE || join(HOME, '.dsh/github-mcp/token');
+// 凭据放在服务文件旁边：整个插件目录可以整体搬走
+const HERE = dirname(fileURLToPath(import.meta.url));
+const TOKEN_FILE = process.env.GITHUB_TOKEN_FILE || join(HERE, 'token');
 const API = (process.env.GITHUB_API_BASE || 'https://api.github.com').replace(/\/$/, '');
 
 function token() {

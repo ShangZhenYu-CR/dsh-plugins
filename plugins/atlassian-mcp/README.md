@@ -4,7 +4,7 @@
 
 ## 认证
 
-`~/.dsh/atlassian-mcp/config.json`：
+服务同目录的 `config.json`（即 `$DSH_HOME/mcp-plugins/atlassian-mcp/config.json`）：
 
 ```json
 {

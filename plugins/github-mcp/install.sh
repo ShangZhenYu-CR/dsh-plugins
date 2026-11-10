@@ -2,7 +2,7 @@
 # 安装后钩子：准备 GitHub 的 token 文件
 set -euo pipefail
 DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
-DIR="$DSH_HOME/github-mcp"
+DIR="${PLUGIN_DIR:-$DSH_HOME/mcp-plugins/github-mcp}"
 
 if [ ! -f "$DIR/token" ]; then
   umask 077

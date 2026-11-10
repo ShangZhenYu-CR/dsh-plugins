@@ -27,13 +27,14 @@ for dir in "$ROOT"/plugins/*/; do
   [ -n "$timeout" ] || timeout=120000
   [ -n "$id" ] && [ -n "$server" ] || { echo "跳过 $name（plugin.yml 缺 id/serverName）"; continue; }
 
+  install_dir="$DSH_HOME/mcp-plugins/$name"
   echo "== 安装 $name（id=$id, serverName=$server）=="
-  mkdir -p "$DSH_HOME/$name"
-  cp "$dir/server.mjs" "$dir/package.json" "$DSH_HOME/$name/"
-  ( cd "$DSH_HOME/$name" && npm install --omit=dev --silent --no-audit --no-fund )
+  mkdir -p "$install_dir"
+  cp "$dir/server.mjs" "$dir/package.json" "$install_dir/"
+  ( cd "$install_dir" && npm install --omit=dev --silent --no-audit --no-fund )
 
   if [ -x "$dir/install.sh" ] || [ -f "$dir/install.sh" ]; then
-    DSH_HOME="$DSH_HOME" bash "$dir/install.sh"
+    DSH_HOME="$DSH_HOME" PLUGIN_DIR="$install_dir" bash "$dir/install.sh"
   fi
 
   if grep -q "id: $id" "$PATCH" 2>/dev/null; then
@@ -50,7 +51,7 @@ for dir in "$ROOT"/plugins/*/; do
       echo "        transport: stdio"
       echo "        command: !!js process.execPath"
       echo "        args:"
-      echo "          - $DSH_HOME/$name/server.mjs"
+      echo "          - $install_dir/server.mjs"
       echo "        toolCallTimeoutMs: $timeout"
       echo "        failOnStartupError: false"
     } >> "$PATCH"

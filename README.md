@@ -22,7 +22,7 @@ plugins/
   atlassian-mcp/
     ...
 scripts/
-  setup.sh            # 装全部插件 + 写 cordis patch
+  setup.sh            # 装全部插件到 $DSH_HOME/mcp-plugins/ + 写 cordis patch
   set-git-credential.sh
   uninstall.sh        # 按 plugin.yml 逐个卸载
 ```
@@ -36,19 +36,19 @@ git clone https://github.com/ShangZhenYu-CR/dsh-plugins.git
 cd dsh-plugins
 bash scripts/setup.sh          # 装依赖 + 注册到 profile patch
 # 填凭据：
-#   GitHub   : echo 'ghp_xxx' > ~/.dsh/github-mcp/token && chmod 600 同文件
-#   Atlassian: 编辑 ~/.dsh/atlassian-mcp/config.json
+#   GitHub   : echo 'ghp_xxx' > ~/.dsh/mcp-plugins/github-mcp/token && chmod 600 同文件
+#   Atlassian: 编辑 ~/.dsh/mcp-plugins/atlassian-mcp/config.json
 bash scripts/set-git-credential.sh   # 让命令行 git 也能访问私有仓库
 # 重启 DSH 引擎
 ```
 
 `setup.sh` 做的事（对每个 `plugins/*/`）：
 
-1. 把 `server.mjs` + `package.json` 复制到 `$DSH_HOME/<插件目录名>`，`npm install --omit=dev`
+1. 把 `server.mjs` + `package.json` 复制到 `$DSH_HOME/mcp-plugins/<插件目录名>`，`npm install --omit=dev`
 2. 有 `install.sh` 就执行（创建空白凭据文件，已存在则不动）
-3. 若 profile patch 里还没有该 `id`，追加一个 `mcp-client` insert 块，`args` 指向 `$DSH_HOME/<插件目录名>/server.mjs`
+3. 若 profile patch 里还没有该 `id`，追加一个 `mcp-client` insert 块，`args` 指向 `$DSH_HOME/mcp-plugins/<插件目录名>/server.mjs`
 
-重复执行是安全的：已存在的条目不重复写。**装到哪个目录 = 仓库里的文件夹名**，所以改名要同时改目录名。
+重复执行是安全的：已存在的条目不重复写。所有插件统一装在 `$DSH_HOME/mcp-plugins/<插件目录名>/`，凭据文件就放在同一个目录里，整个插件目录可以整体搬走。
 
 ## 新增一个插件
 
@@ -70,9 +70,9 @@ bash scripts/setup.sh
 
 | 文件 | 内容 |
 |---|---|
-| `$DSH_HOME/github-mcp/token` | GitHub PAT，一行 |
-| `$DSH_HOME/github-mcp/git-credentials` | git credential store（由 `set-git-credential.sh` 生成） |
-| `$DSH_HOME/atlassian-mcp/config.json` | `{"site":"xxx.atlassian.net","email":"you@x.com","token":"..."}` |
+| `$DSH_HOME/mcp-plugins/github-mcp/token` | GitHub PAT，一行 |
+| `$DSH_HOME/mcp-plugins/github-mcp/git-credentials` | git credential store（由 `set-git-credential.sh` 生成） |
+| `$DSH_HOME/mcp-plugins/atlassian-mcp/config.json` | `{"site":"xxx.atlassian.net","email":"you@x.com","token":"..."}` |
 
 这些文件**不会被仓库收录**（见 `.gitignore`），也不要在对话里再次粘贴已保存的 token。
 
@@ -87,7 +87,7 @@ bash scripts/setup.sh
 bash scripts/uninstall.sh
 ```
 
-删除 `$DSH_HOME/<插件目录>` 并从 patch 里移除对应 insert 块，凭据先备份到 `/tmp/dsh-plugins-backup/`，然后重启 DSH。
+删除 `$DSH_HOME/mcp-plugins/<插件目录>` 并从 patch 里移除对应 insert 块，凭据先备份到 `/tmp/dsh-plugins-backup/`，然后重启 DSH。
 
 ## License
 

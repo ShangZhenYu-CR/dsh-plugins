@@ -4,7 +4,7 @@
 
 ## 认证
 
-Token 放在 `~/.dsh/github-mcp/token`（一行），也可用环境变量 `GITHUB_TOKEN` / `GITHUB_TOKEN_FILE` 覆盖。
+Token 放在服务文件旁边的 `token`（即 `$DSH_HOME/mcp-plugins/github-mcp/token`，一行），也可用环境变量 `GITHUB_TOKEN` / `GITHUB_TOKEN_FILE` 覆盖。
 
 - classic PAT：勾 `repo`
 - fine-grained：目标仓库的 Contents / Issues / Pull requests 读写
@@ -46,7 +46,7 @@ bash ../../scripts/set-git-credential.sh
 | 变量 | 默认值 | 说明 |
 |---|---|---|
 | `GITHUB_TOKEN` | — | 优先于 token 文件 |
-| `GITHUB_TOKEN_FILE` | `~/.dsh/github-mcp/token` | token 文件路径 |
+| `GITHUB_TOKEN_FILE` | 服务同目录 `token` | token 文件路径 |
 | `GITHUB_API_BASE` | `https://api.github.com` | 企业版/代理时改这里 |
 | `GITHUB_WORKSPACE` | `/root/workspace` | 相对路径型 `path` 的根目录 |
 

@@ -28,11 +28,11 @@ print(f'  patch: 移除 {pid}（{n} 处）')
 PY
   fi
 
-  for f in "$DSH_HOME/$name"/token "$DSH_HOME/$name"/git-credentials "$DSH_HOME/$name"/config.json; do
+  for f in "$DSH_HOME/mcp-plugins/$name"/token "$DSH_HOME/mcp-plugins/$name"/git-credentials "$DSH_HOME/mcp-plugins/$name"/config.json; do
     [ -f "$f" ] && cp "$f" "$BACKUP/$name-$(basename "$f")" && echo "  已备份 $(basename "$f") → $BACKUP/"
   done
-  rm -rf "$DSH_HOME/$name"
-  echo "  已删除 $DSH_HOME/$name"
+  rm -rf "$DSH_HOME/mcp-plugins/$name"
+  echo "  已删除 $DSH_HOME/mcp-plugins/$name"
 done
 
 echo "完成。重启 DSH 后工具消失；凭据备份在 $BACKUP"

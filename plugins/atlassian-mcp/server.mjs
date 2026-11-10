@@ -5,10 +5,12 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
-const HOME = process.env.HOME || homedir();
-const CONFIG_FILE = process.env.ATLASSIAN_CONFIG || join(HOME, '.dsh/atlassian-mcp/config.json');
+// 配置放在服务文件旁边：整个插件目录可以整体搬走
+const HERE = dirname(fileURLToPath(import.meta.url));
+const CONFIG_FILE = process.env.ATLASSIAN_CONFIG || join(HERE, 'config.json');
 
 function config() {
   try {
