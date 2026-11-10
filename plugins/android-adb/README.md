@@ -27,6 +27,21 @@ apt-get install -y android-tools-adb aapt
 
 配对一次即可；手机重启或关掉无线调试后要重新配对。端口每次都会变，看手机屏幕上的数字。
 
+## 端口已固定
+
+用 `adb tcpip 51237` 把端口固定成 **51237**，不再随机。手机 IP 会随网络变（WiFi / 蜂窝），插件把它记在安装目录的 `connection.json` 里，并在需要设备时自动重连：
+
+```
+adb_connect(port) 成功 → 写 connection.json（host + port）
+之后任何工具发现设备不在线 → 用记住的端口依次试 记录IP / 本机各 IPv4 / 127.0.0.1
+```
+
+所以别的对话不需要知道端口，直接用 `install_apk`、`logcat` 就行。
+
+失效时：
+- 无线调试被关掉（WiFi 断过、手机重启）→ 重新打开无线调试，`adb_connect(新端口)`，再 `adb tcpip 51237`
+- 只是换了 WiFi → 自动重连会找新 IP；找不到就让用户读一次
+
 ## 工具
 
 | 工具 | 说明 |

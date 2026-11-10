@@ -5,7 +5,8 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, statSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
+import { existsSync, statSync, mkdirSync, writeFileSync, copyFileSync, readFileSync, chmodSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
 import { isAbsolute, join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,6 +20,50 @@ const clip = (s, n = 6000) => (s.length > n ? s.slice(0, n) + `\n…（已截断
 
 function localPath(p) {
   return isAbsolute(p) ? p : resolve(WORKSPACE, p);
+}
+
+const STATE_FILE = join(HERE, 'connection.json');
+
+function loadState() {
+  try {
+    return JSON.parse(readFileSync(STATE_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function saveState(host, port) {
+  try {
+    writeFileSync(STATE_FILE, JSON.stringify({ host, port, updatedAt: new Date().toISOString() }, null, 2));
+    try { chmodSync(STATE_FILE, 0o600); } catch {}
+  } catch {}
+}
+
+function candidateHosts(saved) {
+  const list = [];
+  const push = (h) => { if (h && !list.includes(h)) list.push(h); };
+  push(saved?.host);
+  for (const addrs of Object.values(networkInterfaces())) {
+    for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) push(a.address);
+  }
+  push('127.0.0.1');
+  return list;
+}
+
+async function trySavedEndpoint() {
+  const st = loadState();
+  if (!st?.port) return false;
+  for (const host of candidateHosts(st)) {
+    const r = await adb(['connect', host + ':' + st.port], { allowFail: true, timeout: 15000 });
+    if (/connected/i.test(r.out + r.err)) {
+      const d = await adb(['devices'], { allowFail: true });
+      if (d.out.includes(host + ':' + st.port) && /device\b/.test(d.out.split(host + ':' + st.port)[1]?.split('\n')[0] || '')) {
+        saveState(host, st.port);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 async function stageApk(apk, name) {
@@ -39,7 +84,11 @@ async function stageApk(apk, name) {
   return { staged: target, mb: Math.round((statSync(target).size / 1048576) * 10) / 10, ...info };
 }
 
+let CURRENT = null;
+const NO_SERIAL = new Set(['connect', 'disconnect', 'devices', 'start-server', 'kill-server', 'pair', 'mdns']);
+
 async function adb(args, { allowFail = false, timeout = 240000 } = {}) {
+  if (CURRENT && args.length && !NO_SERIAL.has(args[0]) && !args.includes('-s')) args = ['-s', CURRENT, ...args];
   try {
     const { stdout, stderr } = await exec(ADB, args, { timeout, maxBuffer: 32 * 1024 * 1024 });
     return { ok: true, out: (stdout || '').trim(), err: (stderr || '').trim() };
@@ -54,14 +103,25 @@ async function ensureDevice() {
   await adb(['start-server'], { allowFail: true });
   const r = await adb(['devices']);
   const lines = r.out.split('\n').slice(1).map((l) => l.trim()).filter(Boolean);
-  const online = lines.filter((l) => /\bdevice$/.test(l)).map((l) => l.split(/\s+/)[0]);
+  let online = lines.filter((l) => /\bdevice$/.test(l)).map((l) => l.split(/\s+/)[0]);
+  if (!online.length && (await trySavedEndpoint())) {
+    const again = await adb(['devices'], { allowFail: true });
+    online = again.out.split('\n').slice(1).map((l) => l.trim()).filter((l) => /\bdevice$/.test(l)).map((l) => l.split(/\s+/)[0]);
+  }
   if (!online.length) {
     const detail = lines.length ? lines.join('; ') : '没有已连接设备';
     throw new Error(
       `没有可用的手机连接（${detail}）。无线调试需要手机连着 WiFi 才能打开；无法用 adb 时可以先 stage_apk 把包放进下载目录，手动点装。`,
     );
   }
-  return online[0];
+  CURRENT = online[0];
+  for (const l of lines) {
+    if (/\boffline\b/.test(l)) {
+      const serial = l.split(/\s+/)[0];
+      if (serial !== CURRENT) await adb(['disconnect', serial], { allowFail: true, timeout: 8000 });
+    }
+  }
+  return CURRENT;
 }
 
 function register(server) {
@@ -75,7 +135,9 @@ function register(server) {
       await adb(['start-server'], { allowFail: true });
       const r = await adb(['devices', '-l']);
       const lines = r.out.split('\n').slice(1).map((l) => l.trim()).filter(Boolean);
-      return text(lines.length ? lines : '没有已连接设备：先在手机开启「开发者选项 → 无线调试」');
+      const st = loadState();
+      const saved = st?.port ? `已记住端口 ${st.port}（${st.host}），工具会自动重连` : '还没有记住的端口';
+      return text({ devices: lines, saved });
     },
   );
 
@@ -110,7 +172,8 @@ function register(server) {
       const out = (r.out + r.err).trim();
       if (!/connected/i.test(out)) throw new Error('连接失败：' + clip(out, 800) + '（确认无线调试开着，端口是最新显示的那个）');
       const d = await adb(['devices']);
-      return text({ connected: `${host}:${port}`, devices: d.out });
+      saveState(host, port);
+      return text({ connected: `${host}:${port}`, saved: true, devices: d.out });
     },
   );
 
