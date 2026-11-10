@@ -1,0 +1,5 @@
+# dsh-plugins 插件清单：一个新插件 = plugins/<名字>/ 下一个文件夹
+id: mcp-atlassian
+serverName: atlassian
+description: Confluence 空间/页面读写 + Jira 项目/Issue/JQL 读写
+timeoutMs: 120000

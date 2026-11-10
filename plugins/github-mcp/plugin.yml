@@ -1,0 +1,5 @@
+# dsh-plugins 插件清单：一个新插件 = plugins/<名字>/ 下一个文件夹
+id: mcp-github
+serverName: github
+description: GitHub 仓库读写（API）+ 私有仓库 clone / pull / push（git）
+timeoutMs: 120000

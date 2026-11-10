@@ -12,7 +12,7 @@ Token 放在 `~/.dsh/github-mcp/token`（一行），也可用环境变量 `GITH
 `git` 相关工具（clone/pull/push）用同一份 token，但通过 credential store 而不是把 token 写进 URL：
 
 ```bash
-bash ../scripts/set-git-credential.sh
+bash ../../scripts/set-git-credential.sh
 ```
 
 ## 工具
