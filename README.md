@@ -12,7 +12,7 @@
 前提：已装好 DSH、node ≥ 20，`$DSH_HOME` 默认 `~/.dsh`。
 
 ```bash
-git clone https://github.com/<you>/dsh-plugins.git
+git clone https://github.com/ShangZhenYu-CR/dsh-plugins.git
 cd dsh-plugins
 bash scripts/setup.sh          # 装依赖 + 写 cordis patch
 # 填凭据：
