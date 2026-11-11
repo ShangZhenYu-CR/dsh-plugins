@@ -27,8 +27,23 @@ Token 在 <https://id.atlassian.com/manage-profile/security/api-tokens> 生成�
 | `get_page` / `get_page_by_title` | 读页面内容（storage 格式 HTML）与版本号 |
 | `get_page_children` | 子页面 |
 | `create_page` | 建页面（`spaceId` + `title` + storage HTML） |
-| `update_page` | 改内容/标题，自动版本号 +1 |
+| `update_page` | 改内容/标题。自动读当前版本并 PUT 完整对象（含 `status: current`、`body: {representation, value}`），`version.number` 自动 +1，409 冲突重试 3 次；`append` 可在正文末尾追加 |
 | `delete_page` | 删除（默认进回收站，`purge` 彻底删） |
+
+### update_page 的入参
+
+```json
+{
+  "id": "22511617",
+  "title": "可省略=保持原标题",
+  "body": "<p>整段新正文</p>",
+  "append": "<p>只追加这段到末尾</p>",
+  "status": "current 或 draft（默认 current）",
+  "message": "版本说明"
+}
+```
+
+内部会先 `GET /wiki/api/v2/pages/{id}?body-format=storage` 拿标题、版本号和现有正文，再按 Confluence v2 要求发送完整对象（`status` 必填、`body` 是对象、`version.number` 是当前 +1）。`body` 与 `append` 同时给时以 `body` 为准。
 
 `body` 用 Confluence storage 格式，例如：
 

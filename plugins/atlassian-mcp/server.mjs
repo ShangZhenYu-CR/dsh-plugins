@@ -191,21 +191,48 @@ function register(server) {
     'update_page',
     {
       title: '改 Confluence 页面',
-      description: '更新页面内容或标题。会自动取当前版本号 +1；可选更新说明。',
+      description:
+        '更新页面内容或标题。先读当前页面拿版本号，再 PUT 完整对象（含 status）。version.number 自动 +1，409 冲突会重取重试；append 可在正文末尾追加。',
       inputSchema: z.object({
         id: z.string(),
-        title: z.string().optional(),
-        body: z.string().optional().describe('新的 storage 格式 HTML，省略=只改标题'),
+        title: z.string().optional().describe('省略=保持原标题'),
+        body: z.string().optional().describe('新的 storage 格式 HTML，省略=保持原正文'),
+        append: z.string().optional().describe('追加到正文末尾的 storage HTML（与 body 二选一，body 优先）'),
+        status: z.enum(['current', 'draft']).optional().describe('默认 current'),
         message: z.string().optional().describe('版本说明'),
       }),
     },
-    async ({ id, title, body, message }) => {
-      const cur = await call('GET', `/wiki/api/v2/pages/${id}`);
-      const next = (cur.version?.number || 0) + 1;
-      const payload = { id, title: title || cur.title, version: { number: next, message: message || 'updated by DSH' } };
-      if (body !== undefined) payload.body = { representation: 'storage', value: body };
-      const p = await call('PUT', `/wiki/api/v2/pages/${id}`, payload);
-      return text({ id: p.id, title: p.title, version: p.version?.number, link: p._links?.webui });
+    async ({ id, title, body, append, status = 'current', message }) => {
+      let lastErr;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        // 每次都重新取：拿 title / version.number / 现有正文（storage）
+        const cur = await call('GET', `/wiki/api/v2/pages/${encodeURI(id)}?body-format=storage`);
+        const currentBody = cur.body?.storage?.value ?? '';
+        const nextBody = body !== undefined ? body : append ? currentBody + append : currentBody;
+        const payload = {
+          id: String(id),
+          status,
+          title: title || cur.title,
+          body: { representation: 'storage', value: nextBody },
+          version: { number: (cur.version?.number || 0) + 1, message: message || 'updated by DSH' },
+        };
+        try {
+          const p = await call('PUT', `/wiki/api/v2/pages/${encodeURI(id)}`, payload);
+          return text({
+            id: p.id,
+            title: p.title,
+            status: p.status,
+            version: p.version?.number,
+            link: p._links?.webui,
+            appended: append && body === undefined ? append.length : 0,
+          });
+        } catch (e) {
+          lastErr = e;
+          if (e.status === 409 && attempt < 2) continue;
+          throw e;
+        }
+      }
+      throw lastErr;
     },
   );
 
